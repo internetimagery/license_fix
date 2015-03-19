@@ -17,5 +17,5 @@ def get_file():
 	if f.endswith(".ma"):
 		fix_file(f)
 
-process = cmds.scriptJob(e=['SceneSaved',get_file], kws=True, ro=True)
+process = cmds.scriptJob(e=['SceneSaved',get_file], kws=True)
 print "Watching for saves in process %s" %process
