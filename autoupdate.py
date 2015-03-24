@@ -12,5 +12,6 @@ if html:
 	result["version"] = data["tag_name"]
 	result["date"] = data["created_at"]
 	result["download"] = data["zipball_url"]
+	result["description"] = data['body']
 	print pprint.pprint(result)
 
