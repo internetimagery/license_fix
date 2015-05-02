@@ -22,19 +22,20 @@ def licenseChange(license, mayaFile):
         reg += "[ \t]+(\"|')license\\2"  # License section
         reg += "[ \t]+(\"|'))(\w+)((?<!\\)\\3)"
 
-        txt1 = "fileInfo[ \t]+"
-        txt2 = "(\"|')license(?<!\\\\)\\2"
-        txt3 = "(\"|').*?(?<!\\\\)\\3"
-        reg = "(%s%s)[ \t]+%s" % (txt1, txt2, txt3)
+        reg = "fileInfo\\s+"  # File tag
+        reg += "([\"'])license(?<!\\\\)\\1\\s+"
+        reg += "([\"'])(?P<val>.*?)(?<!\\\\)\\2"
         exp = re.compile(reg)
-        match = None
+        found = False
         for line in fileinput.input(f, inplace=True):
-            if match:
+            if found:
                 print line,
             else:
-                match = exp.match(line)
+                match = exp.search(line)
                 if match:
-                    print exp.sub("\\1 \\3%s\\3" % license, line),
+                    found = True
+                    pos = match.span("val")
+                    print line[:pos[0]] + license + line[pos[1]:],
                 else:
                     print line,
         print "License changed to %s in file: %s\n" % (license, f),
