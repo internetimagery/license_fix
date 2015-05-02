@@ -18,13 +18,9 @@ def licenseChange(license, mayaFile):
     """
     f = validateFile(mayaFile)
     if f:
-        reg = "(fileInfo"  # file info tag
-        reg += "[ \t]+(\"|')license\\2"  # License section
-        reg += "[ \t]+(\"|'))(\w+)((?<!\\)\\3)"
-
         reg = "fileInfo\\s+"  # File tag
-        reg += "([\"'])license(?<!\\\\)\\1\\s+"
-        reg += "([\"'])(?P<val>.*?)(?<!\\\\)\\2"
+        reg += "([\"'])(?P<key>.*?)(?<!\\\\)\\1\\s+"
+        reg += "([\"'])(?P<val>.*?)(?<!\\\\)\\3"
         exp = re.compile(reg)
         found = False
         for line in fileinput.input(f, inplace=True):
@@ -32,7 +28,7 @@ def licenseChange(license, mayaFile):
                 print line,
             else:
                 match = exp.search(line)
-                if match:
+                if match and match.group("key") == "license":
                     found = True
                     pos = match.span("val")
                     print line[:pos[0]] + license + line[pos[1]:],
