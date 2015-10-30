@@ -20,7 +20,7 @@ class Fix(object):
         s.license = license
 
     def listen(s):
-        s.listener = cmds.scriptJob(e=['SceneSaved', s.wait], ro=True)
+        s.listener = cmds.scriptJob(e=['SceneSaved', s.wait])
         print "Watching for saves in process %s" % s.listener
 
     def message(s, *text):
