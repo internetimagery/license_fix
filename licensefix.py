@@ -24,33 +24,31 @@ class Fix(object):
     def wait(s):
         cmds.scriptJob(
             ro=True,
-            ie=lambda: threading.Thread(
-                target=s.fixfile,
-                args=(cmds.file(q=True, sn=True),),
-                daemon=True).start())
+            ie=lambda: s.fixfile(cmds.file(q=True, sn=True)))
+            # threading.Thread(
+                # target=s.fixfile,
+                # args=(cmds.file(q=True, sn=True),),
+                # daemon=True).start())
 
     def fixfile(s, filename):
         ext = os.path.splitext(filename)[1]
         filename = os.path.realpath(filename)
         reg = ""
         if ext == ".ma":
-            reg = "fileInfo\\s+"  # File tag
-            reg += "([\"'])(?P<key>.*?)(?<!\\\\)\\1\\s+"
-            reg += "([\"'])(?P<val>.*?)(?<!\\\\)\\3"
-        if ext == ".mb":
-            reg = "license.+?(\\w+)"
+            reg = r"fileInfo\s*?([\"'])license(?<!\\)\1\s*?([\"'])(?P<val>\w+?)(?<!\\)\2"
+        # if ext == ".mb":
+        #     reg = "license.+?(?P<val>\\w+)"
         if reg and os.path.isfile(filename):
             search = True
             try:
-                with tempfile.NamedTemporaryFile() as w:
+                with tempfile.TemporaryFile() as w:
                     with open(filename, "rb") as r:
                         for line in r:
                             if search:
                                 match = re.search(reg, line)
                                 if match:
-                                    end = match.end()
-                                    start = end - len(match.group(1))
-                                    line = line[: start] + s.license + line[end :]
+                                    pos = match.span("val")
+                                    line = line[: pos[0]] + s.license + line[pos[1] :]
                                     search = False
                             w.write(line)
                     if not search:
