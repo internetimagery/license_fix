@@ -18,20 +18,22 @@ class Fix(object):
 
     def message(s, *text):
         def write():
-            print ", ".joint(text)
+            print ", ".join(text)
         utils.executeDeferred(write)
 
     def wait(s):
-        try:
-            cmds.scriptJob(
-                ro=True,
-                ie=lambda: s.fixfile(cmds.file(q=True, sn=True)))
-                # ie = lambda: threading.Thread(
-                #     target=s.fixfile,
-                #     args=(cmds.file(q=True, sn=True),),
-                #     daemon=True).start())
-        except:
-            s.message(traceback.format_exc())
+        th = threading.Thread(
+            target=s.fixfile,
+            args=(cmds.file(q=True, sn=True),)
+        )
+        th.daemon=True
+        cmds.scriptJob(
+            ro=True,
+            ie=lambda: th.start()
+            )
+
+    def test(s, f):
+        s.message(f)
 
     def fixfile(s, filename):
         ext = os.path.splitext(filename)[1]
