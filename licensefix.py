@@ -1,57 +1,76 @@
 #!/usr/bin/env python
-import fileinput
-import os
+import maya.utils as utils
+import traceback
+import threading
+import tempfile
+import os.path
+import shutil
 import re
 
-
-def validateFile(mayaFile):
+class Fix(object):
     """
-    Check file exists.
+    Fix license in maya file
     """
-    mayaFile = os.path.realpath(mayaFile)
-    return mayaFile if os.path.isfile(mayaFile) and mayaFile.endswith(".ma") else False
+    def __init__(s, license):
+        s.license = license
+        s.listener = cmds.scriptJob(e=['SceneSaved', s.wait], ro=True)
+        print "Watching for saves in process %s" % s.listener
 
+    def message(s, text):
+        def write():
+            print text
+        utils.executeDeferred(write)
 
-def licenseChange(license, mayaFile):
-    """
-    Find, replace license with provided name
-    """
-    f = validateFile(mayaFile)
-    if f:
-        reg = "fileInfo\\s+"  # File tag
-        reg += "([\"'])(?P<key>.*?)(?<!\\\\)\\1\\s+"
-        reg += "([\"'])(?P<val>.*?)(?<!\\\\)\\3"
-        exp = re.compile(reg)
-        found = False
-        for line in fileinput.input(f, inplace=True):
-            if found:
-                print line,
-            else:
-                match = exp.search(line)
-                if match and match.group("key") == "license":
-                    found = True
-                    pos = match.span("val")
-                    print line[:pos[0]] + license + line[pos[1]:],
-                else:
-                    print line,
-        print "License changed to %s in file: %s\n" % (license, f),
+    def wait(s):
+        cmds.scriptJob(
+            ro=True,
+            ie=lambda: threading.Thread(
+                target=s.fixfile,
+                args=(cmds.file(q=True, sn=True),),
+                daemon=True).start())
 
+    def fixfile(s, filename):
+        ext = os.path.splitext(filename)[1]
+        filename = os.path.realpath(filename)
+        reg = ""
+        if ext == ".ma":
+            reg = "fileInfo\\s+"  # File tag
+            reg += "([\"'])(?P<key>.*?)(?<!\\\\)\\1\\s+"
+            reg += "([\"'])(?P<val>.*?)(?<!\\\\)\\3"
+        if ext == ".mb":
+            reg = "license.+?(\\w+)"
+        if reg and os.path.isfile(filename):
+            search = True
+            try:
+                with tempfile.NamedTemporaryFile() as w:
+                    with open(filename, "rb") as r:
+                        for line in r:
+                            if search:
+                                match = re.search(reg, line)
+                                if match:
+                                    end = match.end()
+                                    start = end - len(match.group(1))
+                                    line = line[: start] + s.license + line[end :]
+                                    search = False
+                            w.write(line)
+                    if not search:
+                        w.seek(0)
+                        with open(filename, "wb") as f:
+                            for line in w:
+                                f.write(line)
+                        s.message("License changed to \"%s\" in %s" % (s.license, filename))
+            except:
+                s.message(traceback.format_exc())
 
-def activate(license):
-    """
-    Turn on automatic fixing
-    """
-    process = cmds.scriptJob(e=['SceneSaved', lambda: licenseChange(license, cmds.file(q=True, sn=True))])
-    print "Watching for saves in process %s" % process
-
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(
-        description="Change license of maya file.")
-    parser.add_argument("license", help="License name.", type=str)
-    parser.add_argument("input", help="File for processing.", type=str)
-    args = parser.parse_args()
-    licenseChange(args.license, args.input)
-else:
-    import maya.cmds as cmds
+import maya.cmds as cmds
+Fix("education")
+# if __name__ == "__main__":
+#     import argparse
+#     parser = argparse.ArgumentParser(
+#         description="Change license of maya file.")
+#     parser.add_argument("license", help="License name.", type=str)
+#     parser.add_argument("input", help="File for processing.", type=str)
+#     args = parser.parse_args()
+#     licenseChange(args.license, args.input)
+# else:
+#     import maya.cmds as cmds
