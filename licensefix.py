@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import maya.utils as utils
 import traceback
 import threading
 import tempfile
@@ -16,19 +15,22 @@ class Fix(object):
         s.listener = cmds.scriptJob(e=['SceneSaved', s.wait], ro=True)
         print "Watching for saves in process %s" % s.listener
 
-    def message(s, text):
+    def message(s, *text):
         def write():
-            print text
+            print ", ".joint(text)
         utils.executeDeferred(write)
 
     def wait(s):
-        cmds.scriptJob(
-            ro=True,
-            ie=lambda: s.fixfile(cmds.file(q=True, sn=True)))
-            # threading.Thread(
-                # target=s.fixfile,
-                # args=(cmds.file(q=True, sn=True),),
-                # daemon=True).start())
+        try:
+            cmds.scriptJob(
+                ro=True,
+                ie=lambda: s.fixfile(cmds.file(q=True, sn=True)))
+                # ie = lambda: threading.Thread(
+                #     target=s.fixfile,
+                #     args=(cmds.file(q=True, sn=True),),
+                #     daemon=True).start())
+        except:
+            s.message(traceback.format_exc())
 
     def fixfile(s, filename):
         ext = os.path.splitext(filename)[1]
@@ -37,7 +39,7 @@ class Fix(object):
         if ext == ".ma":
             reg = r"fileInfo\s*?([\"'])license(?<!\\)\1\s*?([\"'])(?P<val>\w+?)(?<!\\)\2"
         # if ext == ".mb":
-        #     reg = "license.+?(?P<val>\\w+)"
+        #     reg = r"license.+?(?P<val>\w+)"
         if reg and os.path.isfile(filename):
             search = True
             try:
@@ -60,6 +62,7 @@ class Fix(object):
             except:
                 s.message(traceback.format_exc())
 
+import maya.utils as utils
 import maya.cmds as cmds
 Fix("education")
 # if __name__ == "__main__":
