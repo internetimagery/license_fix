@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+try:
+    import maya.cmds as cmds
+    import maya.utils as utils
+except ImportError:
+    utils = None
 import traceback
 import threading
 import tempfile
@@ -13,13 +18,15 @@ class Fix(object):
     block = threading.Semaphore()
     def __init__(s, license):
         s.license = license
+
+    def listen(s):
         s.listener = cmds.scriptJob(e=['SceneSaved', s.wait], ro=True)
         print "Watching for saves in process %s" % s.listener
 
     def message(s, *text):
         def write():
             print ", ".join(text)
-        utils.executeDeferred(write)
+        utils.executeDeferred(write) if utils else write()
 
     def wait(s):
         th = threading.Thread(
@@ -66,16 +73,15 @@ class Fix(object):
                 except:
                     s.message(traceback.format_exc())
 
-import maya.utils as utils
-import maya.cmds as cmds
 Fix("education")
-# if __name__ == "__main__":
-#     import argparse
-#     parser = argparse.ArgumentParser(
-#         description="Change license of maya file.")
-#     parser.add_argument("license", help="License name.", type=str)
-#     parser.add_argument("input", help="File for processing.", type=str)
-#     args = parser.parse_args()
-#     licenseChange(args.license, args.input)
-# else:
-#     import maya.cmds as cmds
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Change license of maya file.")
+    parser.add_argument("license", help="License name.", type=str)
+    parser.add_argument("input", help="File for processing.", type=str)
+    args = parser.parse_args()
+    Fix(args.license).fixfile(args.input)
+else:
+    import maya.utils as utils
+    import maya.cmds as cmds
