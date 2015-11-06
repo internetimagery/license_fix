@@ -1,9 +1,8 @@
 # license-fix
-To use, simply make a shelf icon with the code:
+
+To use, place this code in your "userSetup.py" file.
 
 ``` python
-import license_fix
-license_fix.activate("education")
+import license_fix as lf
+lf.Fix("education").listen()
 ```
-
-Click it when in the scene to set and forget it
