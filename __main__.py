@@ -1,7 +1,8 @@
 # Run on a file and fix license
 
-from . import Fix
 import argparse
+from __init__ import Fix
+
 parser = argparse.ArgumentParser(
     description="Change license of maya file.")
 parser.add_argument("license", help="License name.", type=str)
